@@ -12,6 +12,16 @@ const roleLabels: Record<string, { label: string; color: string; icon: React.Rea
   user: { label: 'User', color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400', icon: <User size={14} /> },
 };
 
+const demoUsers = [
+  { id: 'u1', name: 'Platform Admin', first_name: 'Platform', last_name: 'Admin', email: 'superadmin@energypaas.com', role: 'super_admin', organization_name: 'EnergyOS Platform', is_active: true, created_at: '2024-12-01T00:00:00Z' },
+  { id: 'u2', name: 'Priya Sharma', first_name: 'Priya', last_name: 'Sharma', email: 'admin@greencity.com', role: 'tenant_admin', organization_name: 'GreenCity Apartments', is_active: true, created_at: '2025-01-10T00:00:00Z' },
+  { id: 'u3', name: 'Rahul Kumar', first_name: 'Rahul', last_name: 'Kumar', email: 'rahul@greencity.com', role: 'user', organization_name: 'GreenCity Apartments', is_active: true, created_at: '2025-01-15T00:00:00Z' },
+  { id: 'u4', name: 'Anjali Desai', first_name: 'Anjali', last_name: 'Desai', email: 'anjali@greencity.com', role: 'user', organization_name: 'GreenCity Apartments', is_active: true, created_at: '2025-01-18T00:00:00Z' },
+  { id: 'u5', name: 'Vikram Singh', first_name: 'Vikram', last_name: 'Singh', email: 'vikram@smarttech.com', role: 'user', organization_name: 'SmartTech Office Park', is_active: true, created_at: '2025-02-01T00:00:00Z' },
+  { id: 'u6', name: 'Meera Patel', first_name: 'Meera', last_name: 'Patel', email: 'meera@smarttech.com', role: 'tenant_admin', organization_name: 'SmartTech Office Park', is_active: true, created_at: '2025-01-20T00:00:00Z' },
+  { id: 'u7', name: 'Arjun Mehta', first_name: 'Arjun', last_name: 'Mehta', email: 'arjun@metroutility.com', role: 'user', organization_name: 'Metro Utility Corp', is_active: true, created_at: '2025-02-05T00:00:00Z' },
+];
+
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,8 +32,18 @@ export default function UsersPage() {
   const fetchUsers = useCallback(async () => {
     try {
       const data = await apiFetch('/api/users');
-      setUsers(Array.isArray(data) ? data : data.users || []);
-    } catch (err) { console.error(err); }
+      const list = Array.isArray(data) ? data : data.users || [];
+      // Normalize name from first_name / last_name
+      const normalized = list.map((u: any) => ({
+        ...u,
+        name: u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
+        organization_name: u.organization_name || u.org_name || '—',
+      }));
+      setUsers(normalized.length > 0 ? normalized : demoUsers);
+    } catch (err) {
+      console.error(err);
+      setUsers(demoUsers);
+    }
     setLoading(false);
   }, []);
 

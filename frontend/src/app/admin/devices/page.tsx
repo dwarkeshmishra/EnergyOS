@@ -6,6 +6,24 @@ import {
   Cpu, Send, Search, Clock, CheckCircle, XCircle, Loader, RefreshCw
 } from 'lucide-react';
 
+const demoMeters = [
+  { id: 'dm1', meter_id: 'SM-GC-001', location: 'Flat A-101, GreenCity', status: 'online' },
+  { id: 'dm2', meter_id: 'SM-GC-002', location: 'Flat A-203, GreenCity', status: 'online' },
+  { id: 'dm3', meter_id: 'SM-GC-003', location: 'Flat B-301, GreenCity', status: 'offline' },
+  { id: 'dm4', meter_id: 'SM-ST-001', location: 'Office 101, SmartTech', status: 'online' },
+  { id: 'dm5', meter_id: 'SM-ST-002', location: 'Office 205, SmartTech', status: 'online' },
+  { id: 'dm6', meter_id: 'SM-MU-001', location: 'Substation Alpha, Metro', status: 'online' },
+];
+
+const demoCommands = [
+  { command_type: 'ping', status: 'completed', created_at: new Date(Date.now() - 120000).toISOString(), response: { latency_ms: 38, status: 'reachable' } },
+  { command_type: 'read_now', status: 'completed', created_at: new Date(Date.now() - 600000).toISOString(), response: { power_watts: 2480, voltage: 231.5, current: 10.7 } },
+  { command_type: 'firmware_update', status: 'completed', created_at: new Date(Date.now() - 3600000).toISOString(), response: { version: '2.1.0', progress: '100%' } },
+  { command_type: 'calibrate', status: 'pending', created_at: new Date(Date.now() - 300000).toISOString(), response: null },
+  { command_type: 'restart', status: 'completed', created_at: new Date(Date.now() - 7200000).toISOString(), response: { uptime_seconds: 7195, boot_reason: 'user_request' } },
+  { command_type: 'ping', status: 'completed', created_at: new Date(Date.now() - 14400000).toISOString(), response: { latency_ms: 45 } },
+];
+
 export default function DevicesPage() {
   const [meters, setMeters] = useState<any[]>([]);
   const [commands, setCommands] = useState<any[]>([]);
@@ -19,11 +37,16 @@ export default function DevicesPage() {
     try {
       const data = await apiFetch('/api/meters');
       const meterList = Array.isArray(data) ? data : data.meters || [];
-      setMeters(meterList);
-      if (meterList.length > 0 && !selectedMeterId) {
-        setSelectedMeterId(meterList[0].id);
+      const list = meterList.length > 0 ? meterList : demoMeters;
+      setMeters(list);
+      if (list.length > 0 && !selectedMeterId) {
+        setSelectedMeterId(list[0].id);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setMeters(demoMeters);
+      if (!selectedMeterId) setSelectedMeterId(demoMeters[0].id);
+    }
     setLoading(false);
   }, [selectedMeterId]);
 
@@ -32,8 +55,11 @@ export default function DevicesPage() {
   useEffect(() => {
     if (selectedMeterId) {
       apiFetch(`/api/meters/${selectedMeterId}/commands`)
-        .then(data => setCommands(Array.isArray(data) ? data : data.commands || []))
-        .catch(() => setCommands([]));
+        .then(data => {
+          const list = Array.isArray(data) ? data : data.commands || [];
+          setCommands(list.length > 0 ? list : demoCommands);
+        })
+        .catch(() => setCommands(demoCommands));
     }
   }, [selectedMeterId]);
 

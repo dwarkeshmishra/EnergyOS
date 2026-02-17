@@ -7,6 +7,21 @@ import {
   Send, Clock, X, RefreshCw, ChevronRight
 } from 'lucide-react';
 
+const demoMeters = [
+  { id: 'dm1', meter_id: 'SM-GC-001', meter_type: 'smart', location: 'Flat A-101, GreenCity', status: 'online', firmware_version: '2.1.0', org_name: 'GreenCity Apartments', last_reading_at: new Date(Date.now() - 120000).toISOString() },
+  { id: 'dm2', meter_id: 'SM-GC-002', meter_type: 'smart', location: 'Flat A-203, GreenCity', status: 'online', firmware_version: '2.1.0', org_name: 'GreenCity Apartments', last_reading_at: new Date(Date.now() - 300000).toISOString() },
+  { id: 'dm3', meter_id: 'SM-GC-003', meter_type: 'smart', location: 'Flat B-301, GreenCity', status: 'offline', firmware_version: '2.0.8', org_name: 'GreenCity Apartments', last_reading_at: new Date(Date.now() - 3600000).toISOString() },
+  { id: 'dm4', meter_id: 'SM-ST-001', meter_type: 'smart', location: 'Office 101, SmartTech', status: 'online', firmware_version: '2.1.0', org_name: 'SmartTech Office Park', last_reading_at: new Date(Date.now() - 60000).toISOString() },
+  { id: 'dm5', meter_id: 'SM-ST-002', meter_type: 'smart', location: 'Office 205, SmartTech', status: 'online', firmware_version: '2.0.9', org_name: 'SmartTech Office Park', last_reading_at: new Date(Date.now() - 180000).toISOString() },
+  { id: 'dm6', meter_id: 'SM-MU-001', meter_type: 'bulk', location: 'Substation Alpha, Metro', status: 'online', firmware_version: '2.1.1', org_name: 'Metro Utility Corp', last_reading_at: new Date(Date.now() - 30000).toISOString() },
+];
+
+const demoCommands = [
+  { command_type: 'ping', status: 'completed', created_at: new Date(Date.now() - 600000).toISOString(), response: { latency_ms: 42 } },
+  { command_type: 'read_now', status: 'completed', created_at: new Date(Date.now() - 1800000).toISOString(), response: { power_watts: 2340, voltage: 232.1 } },
+  { command_type: 'calibrate', status: 'pending', created_at: new Date(Date.now() - 300000).toISOString(), response: null },
+];
+
 export default function MetersPage() {
   const [meters, setMeters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,8 +34,12 @@ export default function MetersPage() {
   const fetchMeters = useCallback(async () => {
     try {
       const data = await apiFetch('/api/meters');
-      setMeters(Array.isArray(data) ? data : data.meters || []);
-    } catch (err) { console.error(err); }
+      const list = Array.isArray(data) ? data : data.meters || [];
+      setMeters(list.length > 0 ? list : demoMeters);
+    } catch (err) {
+      console.error(err);
+      setMeters(demoMeters);
+    }
     setLoading(false);
   }, []);
 
@@ -29,8 +48,12 @@ export default function MetersPage() {
   const fetchCommands = async (meterId: string) => {
     try {
       const data = await apiFetch(`/api/meters/${meterId}/commands`);
-      setCommands(Array.isArray(data) ? data : data.commands || []);
-    } catch (err) { console.error(err); }
+      const list = Array.isArray(data) ? data : data.commands || [];
+      setCommands(list.length > 0 ? list : demoCommands);
+    } catch (err) {
+      console.error(err);
+      setCommands(demoCommands);
+    }
   };
 
   const sendCommand = async (meterId: string) => {

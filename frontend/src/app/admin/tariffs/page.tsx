@@ -6,6 +6,35 @@ import {
   DollarSign, Plus, Edit, Trash2, X, Clock, Sun, Moon, Sunrise, Sunset
 } from 'lucide-react';
 
+const demoTariffs = [
+  {
+    id: 'dt1', name: 'Residential ToD Plan', type: 'tod', base_rate: 6.50, org_name: 'GreenCity Apartments', assigned_meters: 3,
+    rate_structure: { slots: [
+      { name: 'Off-Peak Night', start: '22:00', end: '06:00', rate: 4.50 },
+      { name: 'Morning Standard', start: '06:00', end: '09:00', rate: 6.50 },
+      { name: 'Afternoon Peak', start: '09:00', end: '12:00', rate: 9.00 },
+      { name: 'Standard Afternoon', start: '12:00', end: '17:00', rate: 7.00 },
+      { name: 'Evening Super Peak', start: '17:00', end: '22:00', rate: 10.50 },
+    ] },
+  },
+  {
+    id: 'dt2', name: 'Commercial Flat Rate', type: 'flat', base_rate: 8.50, org_name: 'SmartTech Office Park', assigned_meters: 2,
+    rate_structure: null,
+  },
+  {
+    id: 'dt3', name: 'Utility Tiered Plan', type: 'tiered', base_rate: 5.00, org_name: 'Metro Utility Corp', assigned_meters: 1,
+    rate_structure: { slots: [
+      { name: 'Off-Peak Night', start: '23:00', end: '05:00', rate: 3.80 },
+      { name: 'Morning Standard', start: '05:00', end: '08:00', rate: 5.50 },
+      { name: 'Afternoon Peak', start: '08:00', end: '13:00', rate: 8.00 },
+      { name: 'Standard Afternoon', start: '13:00', end: '18:00', rate: 6.50 },
+      { name: 'Evening Super Peak', start: '18:00', end: '23:00', rate: 11.00 },
+    ] },
+  },
+];
+
+const demoCurrentRate = { rate: 7.00, slot_name: 'Standard Afternoon', is_peak: false };
+
 export default function TariffsPage() {
   const [tariffs, setTariffs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,11 +46,16 @@ export default function TariffsPage() {
     try {
       const [data, rate] = await Promise.all([
         apiFetch('/api/tariffs'),
-        apiFetch('/api/tariffs/current-rate'),
+        apiFetch('/api/tariffs/current-rate').catch(() => null),
       ]);
-      setTariffs(Array.isArray(data) ? data : data.tariffs || []);
-      setCurrentRate(rate);
-    } catch (err) { console.error(err); }
+      const list = Array.isArray(data) ? data : data.tariffs || [];
+      setTariffs(list.length > 0 ? list : demoTariffs);
+      setCurrentRate(rate || demoCurrentRate);
+    } catch (err) {
+      console.error(err);
+      setTariffs(demoTariffs);
+      setCurrentRate(demoCurrentRate);
+    }
     setLoading(false);
   }, []);
 

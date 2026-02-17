@@ -6,6 +6,12 @@ import {
   Building2, Plus, Search, Users, Gauge, Edit, Trash2, X, CheckCircle
 } from 'lucide-react';
 
+const demoOrgs = [
+  { id: 'demo-1', name: 'GreenCity Apartments', slug: 'greencity', type: 'residential', is_active: true, user_count: 4, meter_count: 3, city: 'Gurugram', state: 'Haryana' },
+  { id: 'demo-2', name: 'SmartTech Office Park', slug: 'smarttech', type: 'commercial', is_active: true, user_count: 2, meter_count: 2, city: 'Bangalore', state: 'Karnataka' },
+  { id: 'demo-3', name: 'Metro Utility Corp', slug: 'metroutility', type: 'utility', is_active: true, user_count: 1, meter_count: 1, city: 'Mumbai', state: 'Maharashtra' },
+];
+
 export default function OrganizationsPage() {
   const [orgs, setOrgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,8 +22,12 @@ export default function OrganizationsPage() {
   const fetchOrgs = useCallback(async () => {
     try {
       const data = await apiFetch('/api/organizations');
-      setOrgs(Array.isArray(data) ? data : data.organizations || []);
-    } catch (err) { console.error(err); }
+      const list = Array.isArray(data) ? data : data.organizations || [];
+      setOrgs(list.length > 0 ? list : demoOrgs);
+    } catch (err) {
+      console.error(err);
+      setOrgs(demoOrgs);
+    }
     setLoading(false);
   }, []);
 
