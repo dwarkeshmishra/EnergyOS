@@ -122,17 +122,21 @@ async function seed() {
       }
     }
 
-    // ── Generate Historical Energy Readings (last 30 days) ──
+    // ── Generate Historical Energy Readings (last 7 days for cloud, 30 for local) ──
     console.log('[Seed] Generating historical energy readings...');
     const now = new Date();
+    const daysToSeed = process.env.DATABASE_URL ? 7 : 30;
+    const batchValues = [];
+    const batchParams = [];
+    let paramIdx = 1;
+
     for (const m of meters.filter(mt => mt.userId)) {
-      for (let day = 29; day >= 0; day--) {
+      for (let day = daysToSeed - 1; day >= 0; day--) {
         for (let hour = 0; hour < 24; hour++) {
           const ts = new Date(now);
           ts.setDate(ts.getDate() - day);
           ts.setHours(hour, Math.floor(Math.random() * 60), 0, 0);
 
-          // Realistic load curve
           let basePower;
           if (hour >= 0 && hour < 6) basePower = 200 + Math.random() * 300;
           else if (hour >= 6 && hour < 9) basePower = 800 + Math.random() * 600;
@@ -141,7 +145,6 @@ async function seed() {
           else if (hour >= 17 && hour < 22) basePower = 1500 + Math.random() * 1000;
           else basePower = 400 + Math.random() * 400;
 
-          // Add weekday/weekend variation
           const dayOfWeek = ts.getDay();
           if (dayOfWeek === 0 || dayOfWeek === 6) basePower *= 1.15;
 
@@ -149,7 +152,6 @@ async function seed() {
           const currentAmps = basePower / voltage;
           const energyKwh = basePower / 1000;
 
-          // Determine tariff type  
           let tariffType = 'standard';
           let rate = 6.50;
           if (hour >= 22 || hour < 6) { tariffType = 'off_peak'; rate = 4.50; }
@@ -158,12 +160,23 @@ async function seed() {
           const cost = energyKwh * rate;
           const carbonKg = energyKwh * 0.82;
 
-          await client.query(`
-            INSERT INTO energy_readings (organization_id, meter_id, timestamp, voltage, current_amps, power_watts, energy_kwh, cost, carbon_kg, tariff_type, reading_quality)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'simulated')
-          `, [m.orgId, m.id, ts, voltage, currentAmps, basePower, energyKwh, cost, carbonKg, tariffType]);
+          batchValues.push(`($${paramIdx},$${paramIdx+1},$${paramIdx+2},$${paramIdx+3},$${paramIdx+4},$${paramIdx+5},$${paramIdx+6},$${paramIdx+7},$${paramIdx+8},$${paramIdx+9},'simulated')`);
+          batchParams.push(m.orgId, m.id, ts, voltage, currentAmps, basePower, energyKwh, cost, carbonKg, tariffType);
+          paramIdx += 10;
+
+          // Flush every 200 rows to avoid query size limits
+          if (batchValues.length >= 200) {
+            await client.query(`INSERT INTO energy_readings (organization_id, meter_id, timestamp, voltage, current_amps, power_watts, energy_kwh, cost, carbon_kg, tariff_type, reading_quality) VALUES ${batchValues.join(',')}`, batchParams);
+            batchValues.length = 0;
+            batchParams.length = 0;
+            paramIdx = 1;
+          }
         }
       }
+    }
+    // Flush remaining
+    if (batchValues.length > 0) {
+      await client.query(`INSERT INTO energy_readings (organization_id, meter_id, timestamp, voltage, current_amps, power_watts, energy_kwh, cost, carbon_kg, tariff_type, reading_quality) VALUES ${batchValues.join(',')}`, batchParams);
     }
 
     // ── Recommendations ──
